@@ -76,11 +76,15 @@ class DataProcessor(object):
 
     def get_train_examples(self, data_dir):
         """Gets a collection of `InputExample`s for the train set."""
-        raise NotImplementedError()
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "train.tsv"), quotechar='"'), "train"
+        )
 
     def get_dev_examples(self, data_dir):
         """Gets a collection of `InputExample`s for the dev set."""
-        raise NotImplementedError()
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "dev.tsv"), quotechar='"'), "dev"
+        )
 
     def get_labels(self):
         """Gets the list of labels for this data set."""
@@ -91,25 +95,11 @@ class DataProcessor(object):
         """Reads a tab separated value file."""
         with open(input_file, "r") as f:
             reader = csv.reader(f, delimiter="\t", quotechar=quotechar)
-            lines = []
-            for line in reader:
-                lines.append(line)
-            return lines
+            return reader
 
 
 class MrpcProcessor(DataProcessor):
     """Processor for the MRPC data set (GLUE version)."""
-
-    def get_train_examples(self, data_dir):
-        """See base class."""
-        logger.info("LOOKING AT {}".format(os.path.join(data_dir, "train.tsv")))
-        return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
-
-    def get_dev_examples(self, data_dir):
-        """See base class."""
-        return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
 
     def get_labels(self):
         """See base class."""
@@ -132,11 +122,6 @@ class MrpcProcessor(DataProcessor):
 
 class MnliProcessor(DataProcessor):
     """Processor for the MultiNLI data set (GLUE version)."""
-
-    def get_train_examples(self, data_dir):
-        """See base class."""
-        return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
@@ -166,16 +151,6 @@ class MnliProcessor(DataProcessor):
 class ColaProcessor(DataProcessor):
     """Processor for the CoLA data set (GLUE version)."""
 
-    def get_train_examples(self, data_dir):
-        """See base class."""
-        return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
-
-    def get_dev_examples(self, data_dir):
-        """See base class."""
-        return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
-
     def get_labels(self):
         """See base class."""
         return ["0", "1"]
@@ -194,16 +169,6 @@ class ColaProcessor(DataProcessor):
 
 class ImdbProcessor(DataProcessor):
     """Processor for the IMDB data set."""
-
-    def get_train_examples(self, data_dir):
-        """See base class."""
-        return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train.tsv"), quotechar='"'), "train")
-
-    def get_dev_examples(self, data_dir):
-        """See base class."""
-        return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "dev.tsv"), quotechar='"'), "dev")
 
     def get_labels(self):
         """See base class."""
