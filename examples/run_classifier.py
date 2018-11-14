@@ -95,7 +95,7 @@ class DataProcessor(object):
         """Reads a tab separated value file."""
         with open(input_file, "r") as f:
             reader = csv.reader(f, delimiter="\t", quotechar=quotechar)
-            return reader
+            return list(reader)
 
 
 class MrpcProcessor(DataProcessor):
