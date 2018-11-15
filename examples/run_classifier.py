@@ -309,7 +309,7 @@ def accuracy(preds, labels):
 
 def cm_accuracy(confusion_matrix: np.ndarray):
     "Calculate the accuracy from a confusion matrix"
-    return confusion_matrix.diagonal.sum() / confusion_matrix.sum()
+    return confusion_matrix.diagonal().sum() / confusion_matrix.sum()
 
 
 def cm_precision_recall_f1(confusion_matrix: np.ndarray):
