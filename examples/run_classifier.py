@@ -614,7 +614,7 @@ def main():
 
             with torch.no_grad():
                 tmp_eval_loss, logits = model(input_ids, segment_ids, input_mask, label_ids)
-            eval_loss += tmp_eval_loss.mean().item()
+                eval_loss += tmp_eval_loss.mean().item()
                 preds = logits.argmax(1)
                 confusion_matrix += metrics.confusion_matrix(label_ids, preds)
             nb_eval_steps += 1
