@@ -24,6 +24,8 @@ import logging
 import argparse
 import random
 from tqdm import tqdm, trange
+from pathlib import Path
+from sklearn import metrics
 
 import numpy as np
 import torch
@@ -300,9 +302,22 @@ def _truncate_seq_pair(tokens_a, tokens_b, max_length):
         else:
             tokens_b.pop()
 
-def accuracy(out, labels):
-    outputs = np.argmax(out, axis=1)
-    return np.sum(outputs == labels)
+
+def accuracy(preds, labels):
+    return (preds == labels).mean()
+
+
+def cm_accuracy(confusion_matrix: np.ndarray):
+    "Calculate the accuracy from a confusion matrix"
+    return confusion_matrix.diagonal.sum() / confusion_matrix.sum()
+
+
+def cm_precision_recall_f1(confusion_matrix: np.ndarray):
+    tn, fp, fn, tp = confusion_matrix.ravel()
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    f1 = 2 * precision * recall / (precision + recall)
+    return precision, recall, f1
 
 def copy_optimizer_params_to_model(named_params_model, named_params_optimizer):
     """ Utility function for optimize_on_cpu and 16-bits training.
@@ -313,6 +328,7 @@ def copy_optimizer_params_to_model(named_params_model, named_params_optimizer):
             logger.error("name_opti != name_model: {} {}".format(name_opti, name_model))
             raise ValueError
         param_model.data.copy_(param_opti.data)
+
 
 def set_optimizer_params_grad(named_params_optimizer, named_params_model, test_nan=False):
     """ Utility function for optimize_on_cpu and 16-bits training.
@@ -566,6 +582,7 @@ def main():
                         optimizer.step()
                     model.zero_grad()
                     global_step += 1
+        torch.save(model.state_dict(), Path(args.output_dir) / "bert_weights.bin")
 
     if args.do_eval:
         eval_examples = processor.get_dev_examples(args.data_dir)
@@ -586,8 +603,9 @@ def main():
         eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
         model.eval()
-        eval_loss, eval_accuracy = 0, 0
-        nb_eval_steps, nb_eval_examples = 0, 0
+        eval_loss = 0
+        nb_eval_steps = 0
+        confusion_matrix = np.zeros((2, 2))  # tn, fp, fn, tp
         for input_ids, input_mask, segment_ids, label_ids in eval_dataloader:
             input_ids = input_ids.to(device)
             input_mask = input_mask.to(device)
@@ -596,24 +614,22 @@ def main():
 
             with torch.no_grad():
                 tmp_eval_loss, logits = model(input_ids, segment_ids, input_mask, label_ids)
-
-            logits = logits.detach().cpu().numpy()
-            label_ids = label_ids.to('cpu').numpy()
-            tmp_eval_accuracy = accuracy(logits, label_ids)
-
             eval_loss += tmp_eval_loss.mean().item()
-            eval_accuracy += tmp_eval_accuracy
-
-            nb_eval_examples += input_ids.size(0)
+                preds = logits.argmax(1)
+                confusion_matrix += metrics.confusion_matrix(label_ids, preds)
             nb_eval_steps += 1
 
-        eval_loss = eval_loss / nb_eval_steps
-        eval_accuracy = eval_accuracy / nb_eval_examples
+        eval_loss /= nb_eval_steps
+        eval_accuracy = cm_accuracy(confusion_matrix)
+        eval_precision, eval_recall, eval_f1 = cm_precision_recall_f1(confusion_matrix)
 
         result = {'eval_loss': eval_loss,
                   'eval_accuracy': eval_accuracy,
+                  'eval_precision': eval_precision,
+                  'eval_recall': eval_recall,
+                  'eval_f1': eval_f1,
                   'global_step': global_step,
-                  'loss': tr_loss/nb_tr_steps}
+                  'loss': tr_loss / nb_tr_steps}
 
         output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
