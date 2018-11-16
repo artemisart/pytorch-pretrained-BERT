@@ -176,6 +176,9 @@ class BasicTokenizer(object):
         orig_tokens = whitespace_tokenize(text)
         split_tokens = []
         for token in orig_tokens:
+            if token == '[MASK]':  # for Wassa2018
+                split_tokens.append('[MASK]')
+                continue
             if self.do_lower_case:
                 token = token.lower()
                 token = self._run_strip_accents(token)

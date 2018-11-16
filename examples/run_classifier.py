@@ -190,6 +190,35 @@ class ImdbProcessor(DataProcessor):
         return examples
 
 
+class WassaFearProcessor(DataProcessor):
+    """Processor for the Wassa data set (fear/no-fear)."""
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            if i == 0:  # skip header
+                assert line == "text anger disgust fear joy sad surprise".split()
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = convert_to_unicode(line[0])  # text
+            label = convert_to_unicode(line[1])  # anger
+            text_a = (text_a
+                .replace('[#TRIGGERWORD#]', '[MASK]')
+                .replace('@USERNAME', '')
+                .replace('[NEWLINE]', '\n')
+                .replace('https://url.removed', '')
+            )
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=None, label=label)
+            )
+        return examples
+
+
 def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
     """Loads a data file into a list of `InputBatch`s."""
 
