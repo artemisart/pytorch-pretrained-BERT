@@ -200,13 +200,14 @@ class WassaFearProcessor(DataProcessor):
     def _create_examples(self, lines, set_type):
         """Creates examples for the training and dev sets."""
         examples = []
+        fear_index = None
         for (i, line) in enumerate(lines):
             if i == 0:  # skip header
-                assert line == "text anger disgust fear joy sad surprise".split()
+                fear_index = line.index("fear")
                 continue
             guid = "%s-%s" % (set_type, i)
             text_a = convert_to_unicode(line[0])  # text
-            label = convert_to_unicode(line[1])  # anger
+            label = convert_to_unicode(line[fear_index])
             text_a = (text_a
                 .replace('[#TRIGGERWORD#]', '[MASK]')
                 .replace('@USERNAME', '')
