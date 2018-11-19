@@ -8,6 +8,7 @@ python run_classifier.py \
 	--task_name wassa \
 	--do_train \
 	--do_eval \
+	--do_predict \
 	--do_lower_case \
 	--data_dir $GLUE_DIR/Wassa2018/ \
 	--vocab_file $BERT_BASE_DIR/vocab.txt \
@@ -18,5 +19,4 @@ python run_classifier.py \
 	--learning_rate 2e-5 \
 	--num_train_epochs 1.0 \
 	--output_dir /tmp/wassa_output/ \
-	--optimize_on_cpu \
 	$@

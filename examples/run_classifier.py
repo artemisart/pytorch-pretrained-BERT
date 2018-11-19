@@ -29,7 +29,7 @@ from sklearn import metrics
 
 import numpy as np
 import torch
-from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler, WeightedRandomSampler
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_pretrained_bert.tokenization import printable_text, convert_to_unicode, BertTokenizer
@@ -87,6 +87,12 @@ class DataProcessor(object):
         return self._create_examples(
             self._read_tsv(os.path.join(data_dir, "dev.tsv"), quotechar='"'), "dev"
         )
+    
+    def get_test_examples(self, data_dir):
+        """Gets a collection of `InputExample`s for the test set."""
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "test.tsv"), quotechar='"'), "test"
+        )
 
     def get_labels(self):
         """Gets the list of labels for this data set."""
@@ -130,6 +136,12 @@ class MnliProcessor(DataProcessor):
         return self._create_examples(
             self._read_tsv(os.path.join(data_dir, "dev_matched.tsv")),
             "dev_matched")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "test_matched.tsv")),
+            "test_matched")
 
     def get_labels(self):
         """See base class."""
@@ -202,8 +214,8 @@ class WassaFearProcessor(DataProcessor):
         examples = []
         fear_index = None
         for (i, line) in enumerate(lines):
-            if i == 0:  # skip header
-                fear_index = line.index("fear")
+            if i == 0:  # header
+                fear_index = line.index('fear')
                 continue
             guid = "%s-%s" % (set_type, i)
             text_a = convert_to_unicode(line[0])  # text
@@ -417,6 +429,9 @@ def main():
                         default=False,
                         action='store_true',
                         help="Whether to run eval on the dev set.")
+    parser.add_argument("--do_predict",
+                        action='store_true',
+                        help="Run predictions on the test set.")
     parser.add_argument("--train_batch_size",
                         default=32,
                         type=int,
@@ -424,7 +439,7 @@ def main():
     parser.add_argument("--eval_batch_size",
                         default=8,
                         type=int,
-                        help="Total batch size for eval.")
+                        help="Total batch size for eval and test (predictions).")
     parser.add_argument("--learning_rate",
                         default=5e-5,
                         type=float,
@@ -465,6 +480,9 @@ def main():
     parser.add_argument('--loss_scale',
                         type=float, default=128,
                         help='Loss scaling, positive power of 2 values can improve fp16 convergence.')
+    parser.add_argument('--balance_training',
+                        action='store_true',
+                        help="Use a weighted sampler to balance training examples for skewed classes")
 
     args = parser.parse_args()
 
@@ -500,8 +518,8 @@ def main():
     if n_gpu > 0:
         torch.cuda.manual_seed_all(args.seed)
 
-    if not args.do_train and not args.do_eval:
-        raise ValueError("At least one of `do_train` or `do_eval` must be True.")
+    if not (args.do_train or args.do_eval or args.do_predict):
+        raise ValueError("At least one of `do_train`, `do_eval`, or `do_predict` must be True.")
 
     if os.path.exists(args.output_dir) and os.listdir(args.output_dir):
         logger.warning("Output directory ({}) already exists and is not empty.".format(args.output_dir))
@@ -568,7 +586,13 @@ def main():
         all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
         train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
         if args.local_rank == -1:
-            train_sampler = RandomSampler(train_data)
+            if args.balance_training:
+                _, counts = np.unique(all_label_ids, return_counts=True)
+                w = len(all_label_ids) / counts  # weight per label_id
+                weights = [w[l] for l in all_label_ids]  # weight per example
+                train_sampler = WeightedRandomSampler(weights, len(weights))
+            else:
+                train_sampler = RandomSampler(train_data)
         else:
             train_sampler = DistributedSampler(train_data)
         train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
@@ -636,7 +660,7 @@ def main():
         eval_loss = 0
         nb_eval_steps = 0
         confusion_matrix = np.zeros((2, 2))  # tn, fp, fn, tp
-        for input_ids, input_mask, segment_ids, label_ids in eval_dataloader:
+        for input_ids, input_mask, segment_ids, label_ids in tqdm(eval_dataloader, "Eval"):
             input_ids = input_ids.to(device)
             input_mask = input_mask.to(device)
             segment_ids = segment_ids.to(device)
@@ -663,10 +687,73 @@ def main():
 
         output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
+            print(args, file=writer)
             logger.info("***** Eval results *****")
             for key in sorted(result.keys()):
                 logger.info("  %s = %s", key, str(result[key]))
+                print(key, "=", result[key], file=writer)
                 writer.write("%s = %s\n" % (key, str(result[key])))
 
-if __name__ == "__main__":
+    if args.do_predict:
+        test_examples = processor.get_test_examples(args.data_dir)
+        test_features = convert_examples_to_features(
+            test_examples, label_list, args.max_seq_length, tokenizer)
+        logger.info("***** Running prediction *****")
+        logger.info("  Num examples = %d", len(test_examples))
+        logger.info("  Batch size = %d", args.eval_batch_size)
+        all_input_ids = torch.tensor([f.input_ids for f in test_features], dtype=torch.long)
+        all_input_mask = torch.tensor([f.input_mask for f in test_features], dtype=torch.long)
+        all_segment_ids = torch.tensor([f.segment_ids for f in test_features], dtype=torch.long)
+        all_label_ids = torch.tensor([f.label_id for f in test_features], dtype=torch.long)
+        test_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
+        if args.local_rank == -1:
+            test_sampler = SequentialSampler(test_data)
+        else:
+            test_sampler = DistributedSampler(test_data)
+        test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=args.eval_batch_size)
+
+        model.eval()
+        test_loss = 0
+        nb_test_steps = 0
+        confusion_matrix = np.zeros((2, 2))  # tn, fp, fn, tp
+        results = []
+        for input_ids, input_mask, segment_ids, label_ids in tqdm(test_dataloader, "Test"):
+            input_ids = input_ids.to(device)
+            input_mask = input_mask.to(device)
+            segment_ids = segment_ids.to(device)
+            label_ids = label_ids.to(device)
+
+            with torch.no_grad():
+                tmp_test_loss, logits = model(input_ids, segment_ids, input_mask, label_ids)
+                test_loss += tmp_test_loss.mean().item()
+                preds = logits.argmax(1)
+                confusion_matrix += metrics.confusion_matrix(label_ids, preds)
+                results.append(logits)
+            nb_test_steps += 1
+
+        test_loss /= nb_test_steps
+        test_accuracy = cm_accuracy(confusion_matrix)
+        test_precision, test_recall, test_f1 = cm_precision_recall_f1(confusion_matrix)
+
+        result = {'test_loss': test_loss,
+                  'test_accuracy': test_accuracy,
+                  'test_precision': test_precision,
+                  'test_recall': test_recall,
+                  'test_f1': test_f1,
+                  'global_step': global_step,
+                  'loss': tr_loss / nb_tr_steps}
+
+        output_test_file = os.path.join(args.output_dir, "test_results.txt")
+        with open(output_test_file, "w") as writer:
+            print(args, file=writer)
+            logger.info("***** test results *****")
+            for key in sorted(result.keys()):
+                logger.info("  %s = %s", key, str(result[key]))
+                writer.write("%s = %s\n" % (key, str(result[key])))
+            writer.write("predictions logits:\n")
+            for p in results:
+                print(p, file=writer)
+
+
+if __name__ == '__main__':
     main()
