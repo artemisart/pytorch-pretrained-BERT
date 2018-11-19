@@ -224,7 +224,7 @@ class WassaFearProcessor(DataProcessor):
                 .replace('[#TRIGGERWORD#]', '[MASK]')
                 .replace('@USERNAME', '')
                 .replace('[NEWLINE]', '\n')
-                .replace('https://url.removed', '')
+                .replace('http://url.removed', '')
             )
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label)
@@ -692,7 +692,6 @@ def main():
             for key in sorted(result.keys()):
                 logger.info("  %s = %s", key, str(result[key]))
                 print(key, "=", result[key], file=writer)
-                writer.write("%s = %s\n" % (key, str(result[key])))
 
     if args.do_predict:
         test_examples = processor.get_test_examples(args.data_dir)
@@ -728,7 +727,7 @@ def main():
                 test_loss += tmp_test_loss.mean().item()
                 preds = logits.argmax(1)
                 confusion_matrix += metrics.confusion_matrix(label_ids, preds)
-                results.append(logits)
+                results.extend(logits.cpu().numpy())
             nb_test_steps += 1
 
         test_loss /= nb_test_steps
