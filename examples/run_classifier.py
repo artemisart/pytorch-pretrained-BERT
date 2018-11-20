@@ -544,6 +544,14 @@ def main():
 
     # Prepare model
     model = BertForSequenceClassification.from_pretrained(args.bert_model, len(label_list))
+    # TODO
+    # model = BertForSequenceClassification(bert_config, len(label_list))
+    # if args.init_checkpoint is not None:
+    #     state = torch.load(args.init_checkpoint, map_location='cpu')
+    #     if next(iter(state)).startswith('bert.'):
+    #         model.load_state_dict(state)
+    #     else:
+    #         model.bert.load_state_dict(state)
     if args.fp16:
         model.half()
     model.to(device)
