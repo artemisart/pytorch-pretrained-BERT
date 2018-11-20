@@ -129,6 +129,8 @@ class BertTokenizer(object):
             vocab_file = PRETRAINED_VOCAB_ARCHIVE_MAP[pretrained_model_name]
         else:
             vocab_file = pretrained_model_name
+            if os.path.isdir(vocab_file):
+                vocab_file = os.path.join(vocab_file, "vocab.txt")
         # redirect to the cache, if necessary
         try:
             resolved_vocab_file = cached_path(vocab_file)
