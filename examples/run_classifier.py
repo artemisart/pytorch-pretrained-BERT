@@ -691,8 +691,7 @@ def main():
                   'eval_precision': eval_precision,
                   'eval_recall': eval_recall,
                   'eval_f1': eval_f1,
-                  'global_step': global_step,
-                  'loss': tr_loss / nb_tr_steps}
+                  'global_step': global_step}
 
         output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
@@ -748,8 +747,7 @@ def main():
                   'test_precision': test_precision,
                   'test_recall': test_recall,
                   'test_f1': test_f1,
-                  'global_step': global_step,
-                  'loss': tr_loss / nb_tr_steps}
+                  'global_step': global_step}
 
         output_test_file = os.path.join(args.output_dir, "test_results.txt")
         with open(output_test_file, "w") as writer:
