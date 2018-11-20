@@ -491,6 +491,7 @@ def main():
         "mnli": MnliProcessor,
         "mrpc": MrpcProcessor,
         "imdb": ImdbProcessor,
+        "wassa": WassaFearProcessor,
     }
 
     if args.local_rank == -1 or args.no_cuda:
