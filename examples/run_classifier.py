@@ -32,7 +32,7 @@ import torch
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler, WeightedRandomSampler
 from torch.utils.data.distributed import DistributedSampler
 
-from pytorch_pretrained_bert.tokenization import printable_text, convert_to_unicode, BertTokenizer
+from pytorch_pretrained_bert.tokenization import BertTokenizer
 from pytorch_pretrained_bert.modeling import BertForSequenceClassification
 from pytorch_pretrained_bert.optimization import BertAdam
 
@@ -120,9 +120,9 @@ class MrpcProcessor(DataProcessor):
             if i == 0:
                 continue
             guid = "%s-%s" % (set_type, i)
-            text_a = convert_to_unicode(line[3])
-            text_b = convert_to_unicode(line[4])
-            label = convert_to_unicode(line[0])
+            text_a = line[3]
+            text_b = line[4]
+            label = line[0]
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
@@ -153,10 +153,10 @@ class MnliProcessor(DataProcessor):
         for (i, line) in enumerate(lines):
             if i == 0:
                 continue
-            guid = "%s-%s" % (set_type, convert_to_unicode(line[0]))
-            text_a = convert_to_unicode(line[8])
-            text_b = convert_to_unicode(line[9])
-            label = convert_to_unicode(line[-1])
+            guid = "%s-%s" % (set_type, line[0])
+            text_a = line[8]
+            text_b = line[9]
+            label = line[-1]
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
@@ -174,8 +174,8 @@ class ColaProcessor(DataProcessor):
         examples = []
         for (i, line) in enumerate(lines):
             guid = "%s-%s" % (set_type, i)
-            text_a = convert_to_unicode(line[3])
-            label = convert_to_unicode(line[1])
+            text_a = line[3]
+            label = line[1]
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
         return examples
@@ -195,8 +195,8 @@ class ImdbProcessor(DataProcessor):
             if i == 0:  # skip header
                 continue
             guid = "%s-%s" % (set_type, i)
-            text_a = tokenization.convert_to_unicode(line[1])
-            label = tokenization.convert_to_unicode(line[0])
+            text_a = line[1]
+            label = line[0]
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
         return examples
@@ -218,8 +218,8 @@ class WassaFearProcessor(DataProcessor):
                 fear_index = line.index('fear')
                 continue
             guid = "%s-%s" % (set_type, i)
-            text_a = convert_to_unicode(line[0])  # text
-            label = convert_to_unicode(line[fear_index])
+            text_a = line[0]  # text
+            label = line[fear_index]
             text_a = (text_a
                 .replace('[#TRIGGERWORD#]', '[MASK]')
                 .replace('@USERNAME', '')
@@ -313,7 +313,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
             logger.info("*** Example ***")
             logger.info("guid: %s" % (example.guid))
             logger.info("tokens: %s" % " ".join(
-                    [printable_text(x) for x in tokens]))
+                    [str(x) for x in tokens]))
             logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
             logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
             logger.info(
@@ -544,7 +544,8 @@ def main():
             len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps * args.num_train_epochs)
 
     # Prepare model
-    model = BertForSequenceClassification.from_pretrained(args.bert_model, len(label_list))
+    model = BertForSequenceClassification.from_pretrained(args.bert_model, len(label_list),
+                cache_dir=PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(args.local_rank))
     # TODO
     # model = BertForSequenceClassification(bert_config, len(label_list))
     # if args.init_checkpoint is not None:
