@@ -32,7 +32,7 @@ from pytorch_pretrained_bert.tokenization import BertTokenizer
 from pytorch_pretrained_bert.modeling import BertModel
 
 logging.basicConfig(
-    format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
+    format='%(asctime)s %(levelname)s %(name)s %(message)s',
     datefmt='%m/%d/%Y %H:%M:%S',
     level=logging.INFO,
 )
