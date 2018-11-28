@@ -193,11 +193,10 @@ def main():
     parser = argparse.ArgumentParser()
 
     ## Required parameters
-    parser.add_argument("--input_file", default=None, type=str, required=True)
-    parser.add_argument("--output_file", default=None, type=str, required=True)
+    parser.add_argument("--input_file", type=str, required=True)
+    parser.add_argument("--output_file", type=str, required=True)
     parser.add_argument(
         "--bert_model",
-        default=None,
         type=str,
         required=True,
         help="Bert pre-trained model selected in the list: bert-base-uncased, "
@@ -218,7 +217,7 @@ def main():
         "--local_rank", type=int, default=-1, help="local_rank for distributed training on gpus"
     )
     parser.add_argument(
-        "--no_cuda", default=False, action='store_true', help="Whether not to use CUDA when available"
+        "--no_cuda", action='store_true', help="Whether not to use CUDA when available"
     )
 
     args = parser.parse_args()

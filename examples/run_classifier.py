@@ -419,95 +419,90 @@ def set_optimizer_params_grad(named_params_optimizer, named_params_model, test_n
 def main():
     parser = argparse.ArgumentParser()
 
-    ## Required parameters
-    parser.add_argument("--data_dir",
-                        default=None,
-                        type=str,
-                        required=True,
-                        help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
-    parser.add_argument("--bert_model", default=None, type=str, required=True,
-                        help="Bert pre-trained model selected in the list: bert-base-uncased, "
-                             "bert-large-uncased, bert-base-cased, bert-base-multilingual, bert-base-chinese.")
-    parser.add_argument("--task_name",
-                        default=None,
-                        type=str,
-                        required=True,
-                        help="The name of the task to train.")
-    parser.add_argument("--output_dir",
-                        default=None,
-                        type=str,
-                        required=True,
-                        help="The output directory where the model checkpoints will be written.")
+    # Required parameters
+    parser.add_argument(
+        "--data_dir",
+        type=Path,
+        required=True,
+        help="The input data dir. Should contain the .tsv files (or other data files) for the task.",
+    )
+    parser.add_argument(
+        "--bert_model",
+        type=str,
+        required=True,
+        help="Bert pre-trained model selected in the list: bert-base-uncased, "
+        "bert-large-uncased, bert-base-cased, bert-base-multilingual, bert-base-chinese.",
+    )
+    parser.add_argument("--task_name", type=str, required=True, help="The name of the task to train.")
+    parser.add_argument(
+        "--output_dir",
+        type=Path,
+        required=True,
+        help="The output directory where the model checkpoints will be written.",
+    )
 
     ## Other parameters
-    parser.add_argument("--max_seq_length",
-                        default=128,
-                        type=int,
-                        help="The maximum total input sequence length after WordPiece tokenization. \n"
-                             "Sequences longer than this will be truncated, and sequences shorter \n"
-                             "than this will be padded.")
-    parser.add_argument("--do_train",
-                        default=False,
-                        action='store_true',
-                        help="Whether to run training.")
-    parser.add_argument("--do_eval",
-                        default=False,
-                        action='store_true',
-                        help="Whether to run eval on the dev set.")
-    parser.add_argument("--do_predict",
-                        action='store_true',
-                        help="Run predictions on the test set.")
-    parser.add_argument("--train_batch_size",
-                        default=32,
-                        type=int,
-                        help="Total batch size for training.")
-    parser.add_argument("--eval_batch_size",
-                        default=8,
-                        type=int,
-                        help="Total batch size for eval and test (predictions).")
-    parser.add_argument("--learning_rate",
-                        default=5e-5,
-                        type=float,
-                        help="The initial learning rate for Adam.")
-    parser.add_argument("--num_train_epochs",
-                        default=3.0,
-                        type=float,
-                        help="Total number of training epochs to perform.")
-    parser.add_argument("--warmup_proportion",
-                        default=0.1,
-                        type=float,
-                        help="Proportion of training to perform linear learning rate warmup for. "
-                             "E.g., 0.1 = 10%% of training.")
-    parser.add_argument("--no_cuda",
-                        default=False,
-                        action='store_true',
-                        help="Whether not to use CUDA when available")
-    parser.add_argument("--local_rank",
-                        type=int,
-                        default=-1,
-                        help="local_rank for distributed training on gpus")
-    parser.add_argument('--seed', 
-                        type=int, 
-                        default=42,
-                        help="random seed for initialization")
-    parser.add_argument('--gradient_accumulation_steps',
-                        type=int,
-                        default=1,
-                        help="Number of updates steps to accumualte before performing a backward/update pass.")                       
-    parser.add_argument('--optimize_on_cpu',
-                        default=False,
-                        action='store_true',
-                        help="Whether to perform optimization and keep the optimizer averages on CPU")
-    parser.add_argument('--fp16',
-                        default=False,
-                        action='store_true',
-                        help="Whether to use 16-bit float precision instead of 32-bit")
-    parser.add_argument('--loss_scale',
-                        type=float, default=128,
-                        help='Loss scaling, positive power of 2 values can improve fp16 convergence.')
-    parser.add_argument('--balance_training',
-                        action='store_true',
-                        help="Use a weighted sampler to balance training examples for skewed classes")
+    parser.add_argument(
+        "--max_seq_length",
+        default=128,
+        type=int,
+        help="The maximum total input sequence length after WordPiece tokenization. \n"
+        "Sequences longer than this will be truncated, and sequences shorter \n"
+        "than this will be padded.",
+    )
+    parser.add_argument("--do_train", action='store_true', help="Whether to run training.")
+    parser.add_argument("--do_eval", action='store_true', help="Whether to run eval on the dev set.")
+    parser.add_argument("--do_predict", action='store_true', help="Run predictions on the test set.")
+    parser.add_argument("--train_batch_size", default=32, type=int, help="Total batch size for training.")
+    parser.add_argument(
+        "--eval_batch_size",
+        default=0,
+        type=int,
+        help="Total batch size for eval and test (predictions), defaults to train_batch_size*2.",
+    )
+    parser.add_argument(
+        "--learning_rate", default=5e-5, type=float, help="The initial learning rate for Adam."
+    )
+    parser.add_argument(
+        "--num_train_epochs", default=3.0, type=float, help="Total number of training epochs to perform."
+    )
+    parser.add_argument(
+        "--warmup_proportion",
+        default=0.1,
+        type=float,
+        help="Proportion of training to perform linear learning rate warmup for. "
+        "E.g., 0.1 = 10%% of training.",
+    )
+    parser.add_argument("--no_cuda", action='store_true', help="Whether not to use CUDA when available")
+    parser.add_argument(
+        "--local_rank", type=int, default=-1, help="local_rank for distributed training on gpus"
+    )
+    parser.add_argument('--seed', type=int, default=42, help="random seed for initialization")
+    parser.add_argument(
+        "--gradient_accumulation_steps",
+        type=int,
+        default=1,
+        help="Number of updates steps to accumualte before performing a backward/update pass.",
+    )
+    parser.add_argument(
+        '--optimize_on_cpu',
+        action='store_true',
+        help="Whether to perform optimization and keep the optimizer averages on CPU",
+    )
+    parser.add_argument(
+        '--fp16', action='store_true', help="Whether to use 16-bit float precision instead of 32-bit"
+    )
+    parser.add_argument(
+        '--loss_scale',
+        type=float,
+        default=128,
+        help="Loss scaling, positive power of 2 values can improve fp16 convergence.",
+    )
+    parser.add_argument(
+        '--balance_training',
+        action='store_true',
+        help="Use a weighted sampler to balance training examples for skewed classes",
+    )
 
     args = parser.parse_args()
 
@@ -541,6 +536,8 @@ def main():
         )
 
     args.train_batch_size = int(args.train_batch_size / args.gradient_accumulation_steps)
+    if not args.eval_batch_size:
+        args.eval_batch_size = args.train_batch_size * 2
 
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -744,7 +741,7 @@ def main():
             'global_step': global_step,
         }
 
-        output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
+        output_eval_file = args.output_dir / "eval_results.txt"
         with open(output_eval_file, "w") as writer:
             print(args, file=writer)
             logger.info("***** Eval results *****")
@@ -805,7 +802,7 @@ def main():
             'global_step': global_step,
         }
 
-        output_test_file = os.path.join(args.output_dir, "test_results.txt")
+        output_test_file = args.output_dir / "test_results.txt"
         with open(output_test_file, "w") as writer:
             print(args, file=writer)
             logger.info("***** test results *****")
