@@ -65,14 +65,17 @@ def whitespace_tokenize(text):
 
 class BertTokenizer(object):
     """Runs end-to-end tokenization: punctuation splitting + wordpiece"""
+
     def __init__(self, vocab_file, do_lower_case=True):
         if not os.path.isfile(vocab_file):
             raise ValueError(
                 "Can't find a vocabulary file at path '{}'. To load the vocabulary from a Google pretrained "
-                "model use `tokenizer = BertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)`".format(vocab_file))
+                "model use `tokenizer = BertTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)`".format(
+                    vocab_file
+                )
+            )
         self.vocab = load_vocab(vocab_file)
-        self.ids_to_tokens = collections.OrderedDict(
-            [(ids, tok) for tok, ids in self.vocab.items()])
+        self.ids_to_tokens = collections.OrderedDict([(ids, tok) for tok, ids in self.vocab.items()])
         self.basic_tokenizer = BasicTokenizer(do_lower_case=do_lower_case)
         self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
 
@@ -115,8 +118,9 @@ class BertTokenizer(object):
             if resolved_vocab_file == vocab_file:
                 logger.info("loading vocabulary file {}".format(vocab_file))
             else:
-                logger.info("loading vocabulary file {} from cache at {}".format(
-                    vocab_file, resolved_vocab_file))
+                logger.info(
+                    "loading vocabulary file {} from cache at {}".format(vocab_file, resolved_vocab_file)
+                )
             # Instantiate tokenizer.
             tokenizer = cls(resolved_vocab_file, do_lower_case)
         except FileNotFoundError:
@@ -126,7 +130,9 @@ class BertTokenizer(object):
                 "associated to this path or url.".format(
                     pretrained_model_name,
                     ', '.join(PRETRAINED_VOCAB_ARCHIVE_MAP.keys()),
-                    pretrained_model_name))
+                    pretrained_model_name,
+                )
+            )
             tokenizer = None
         return tokenizer
 
@@ -196,7 +202,7 @@ class BasicTokenizer(object):
             i += 1
 
         return ["".join(x) for x in output]
-    
+
     def _tokenize_chinese_chars(self, text):
         """Adds whitespace around any CJK character."""
         output = []
@@ -220,18 +226,20 @@ class BasicTokenizer(object):
         # as is Japanese Hiragana and Katakana. Those alphabets are used to write
         # space-separated words, so they are not treated specially and handled
         # like the all of the other languages.
-        if ((cp >= 0x4E00 and cp <= 0x9FFF) or  #
-            (cp >= 0x3400 and cp <= 0x4DBF) or  #
-            (cp >= 0x20000 and cp <= 0x2A6DF) or  #
-            (cp >= 0x2A700 and cp <= 0x2B73F) or  #
-            (cp >= 0x2B740 and cp <= 0x2B81F) or  #
-            (cp >= 0x2B820 and cp <= 0x2CEAF) or
-            (cp >= 0xF900 and cp <= 0xFAFF) or  #
-            (cp >= 0x2F800 and cp <= 0x2FA1F)):  #
+        if (
+            (cp >= 0x4E00 and cp <= 0x9FFF)
+            or (cp >= 0x3400 and cp <= 0x4DBF)
+            or (cp >= 0x20000 and cp <= 0x2A6DF)
+            or (cp >= 0x2A700 and cp <= 0x2B73F)
+            or (cp >= 0x2B740 and cp <= 0x2B81F)
+            or (cp >= 0x2B820 and cp <= 0x2CEAF)
+            or (cp >= 0xF900 and cp <= 0xFAFF)
+            or (cp >= 0x2F800 and cp <= 0x2FA1F)
+        ):
             return True
-    
+
         return False
-    
+
     def _clean_text(self, text):
         """Performs invalid character removal and whitespace cleanup on text."""
         output = []
@@ -337,8 +345,12 @@ def _is_punctuation(char):
     # Characters such as "^", "$", and "`" are not in the Unicode
     # Punctuation class but we treat them as punctuation anyways, for
     # consistency.
-    if ((cp >= 33 and cp <= 47) or (cp >= 58 and cp <= 64) or
-            (cp >= 91 and cp <= 96) or (cp >= 123 and cp <= 126)):
+    if (
+        (cp >= 33 and cp <= 47)
+        or (cp >= 58 and cp <= 64)
+        or (cp >= 91 and cp <= 96)
+        or (cp >= 123 and cp <= 126)
+    ):
         return True
     cat = unicodedata.category(char)
     if cat.startswith("P"):
