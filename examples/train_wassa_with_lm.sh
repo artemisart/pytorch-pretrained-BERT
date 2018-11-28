@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 GLUE_DIR=/data/datasets
-BERT_PYTORCH_DIR=/data/checkpoints/uncased_L-12_H-768_A-12
+BERT_PYTORCH_DIR=/data/checkpoints/wassalm_uncased_L-12_H-768_A-12
 
 python run_classifier.py \
 	--task_name wassa6 \

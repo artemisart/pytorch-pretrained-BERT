@@ -35,6 +35,7 @@ from torch.utils.data.distributed import DistributedSampler
 from pytorch_pretrained_bert.tokenization import BertTokenizer
 from pytorch_pretrained_bert.modeling import BertForSequenceClassification
 from pytorch_pretrained_bert.optimization import BertAdam
+from pytorch_pretrained_bert import PYTORCH_PRETRAINED_BERT_CACHE
 
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s', 
                     datefmt = '%m/%d/%Y %H:%M:%S',
@@ -228,6 +229,34 @@ class WassaFearProcessor(DataProcessor):
             )
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label)
+            )
+        return examples
+
+
+class WassaProcessor(DataProcessor):
+    """Processor for the Wassa data set."""
+
+    def get_labels(self):
+        """See base class."""
+        return [0, 1, 2, 3, 4, 5]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            if i == 0:  # header
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = line[0]  # text
+            labels = line[1:].index("1")
+            text_a = (text_a
+                .replace('[#TRIGGERWORD#]', '[MASK]')
+                .replace('@USERNAME', '')
+                .replace('[NEWLINE]', '\n')
+                .replace('http://url.removed', '')
+            )
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=None, label=labels)
             )
         return examples
 
@@ -491,7 +520,8 @@ def main():
         "mnli": MnliProcessor,
         "mrpc": MrpcProcessor,
         "imdb": ImdbProcessor,
-        "wassa": WassaFearProcessor,
+        "wassafear": WassaFearProcessor,
+        "wassa6": WassaProcessor,
     }
 
     if args.local_rank == -1 or args.no_cuda:
@@ -534,7 +564,7 @@ def main():
     processor = processors[task_name]()
     label_list = processor.get_labels()
 
-    tokenizer = BertTokenizer.from_pretrained(args.bert_model)
+    tokenizer = BertTokenizer.from_pretrained(os.path.join(args.bert_model, 'vocab.txt'))
 
     train_examples = None
     num_train_steps = None
@@ -544,7 +574,7 @@ def main():
             len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps * args.num_train_epochs)
 
     # Prepare model
-    model = BertForSequenceClassification.from_pretrained(args.bert_model, len(label_list),
+    model = BertForSequenceClassification.from_pretrained(args.bert_model, num_labels=len(label_list),
                 cache_dir=PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(args.local_rank))
     # TODO
     # model = BertForSequenceClassification(bert_config, len(label_list))
