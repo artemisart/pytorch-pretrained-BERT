@@ -29,7 +29,13 @@ from sklearn import metrics
 
 import numpy as np
 import torch
-from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler, WeightedRandomSampler
+from torch.utils.data import (
+    TensorDataset,
+    DataLoader,
+    RandomSampler,
+    SequentialSampler,
+    WeightedRandomSampler,
+)
 from torch.utils.data.distributed import DistributedSampler
 
 from pytorch_pretrained_bert.tokenization import BertTokenizer
@@ -37,9 +43,11 @@ from pytorch_pretrained_bert.modeling import BertForSequenceClassification
 from pytorch_pretrained_bert.optimization import BertAdam
 from pytorch_pretrained_bert import PYTORCH_PRETRAINED_BERT_CACHE
 
-logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s', 
-                    datefmt = '%m/%d/%Y %H:%M:%S',
-                    level = logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
+    datefmt='%m/%d/%Y %H:%M:%S',
+    level=logging.INFO,
+)
 logger = logging.getLogger(__name__)
 
 
@@ -85,10 +93,8 @@ class DataProcessor(object):
 
     def get_dev_examples(self, data_dir):
         """Gets a collection of `InputExample`s for the dev set."""
-        return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "dev.tsv"), quotechar='"'), "dev"
-        )
-    
+        return self._create_examples(self._read_tsv(os.path.join(data_dir, "dev.tsv"), quotechar='"'), "dev")
+
     def get_test_examples(self, data_dir):
         """Gets a collection of `InputExample`s for the test set."""
         return self._create_examples(
@@ -124,8 +130,7 @@ class MrpcProcessor(DataProcessor):
             text_a = line[3]
             text_b = line[4]
             label = line[0]
-            examples.append(
-                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
 
@@ -134,15 +139,13 @@ class MnliProcessor(DataProcessor):
 
     def get_dev_examples(self, data_dir):
         """See base class."""
-        return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "dev_matched.tsv")),
-            "dev_matched")
+        return self._create_examples(self._read_tsv(os.path.join(data_dir, "dev_matched.tsv")), "dev_matched")
 
     def get_test_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "test_matched.tsv")),
-            "test_matched")
+            self._read_tsv(os.path.join(data_dir, "test_matched.tsv")), "test_matched"
+        )
 
     def get_labels(self):
         """See base class."""
@@ -158,8 +161,7 @@ class MnliProcessor(DataProcessor):
             text_a = line[8]
             text_b = line[9]
             label = line[-1]
-            examples.append(
-                InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
 
@@ -177,8 +179,7 @@ class ColaProcessor(DataProcessor):
             guid = "%s-%s" % (set_type, i)
             text_a = line[3]
             label = line[1]
-            examples.append(
-                InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
         return examples
 
 
@@ -198,8 +199,7 @@ class ImdbProcessor(DataProcessor):
             guid = "%s-%s" % (set_type, i)
             text_a = line[1]
             label = line[0]
-            examples.append(
-                InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
         return examples
 
 
@@ -221,15 +221,13 @@ class WassaFearProcessor(DataProcessor):
             guid = "%s-%s" % (set_type, i)
             text_a = line[0]  # text
             label = line[fear_index]
-            text_a = (text_a
-                .replace('[#TRIGGERWORD#]', '[MASK]')
+            text_a = (
+                text_a.replace('[#TRIGGERWORD#]', '[MASK]')
                 .replace('@USERNAME', '')
                 .replace('[NEWLINE]', '\n')
                 .replace('http://url.removed', '')
             )
-            examples.append(
-                InputExample(guid=guid, text_a=text_a, text_b=None, label=label)
-            )
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
         return examples
 
 
@@ -249,15 +247,13 @@ class WassaProcessor(DataProcessor):
             guid = "%s-%s" % (set_type, i)
             text_a = line[0]  # text
             labels = line[1:].index("1")
-            text_a = (text_a
-                .replace('[#TRIGGERWORD#]', '[MASK]')
+            text_a = (
+                text_a.replace('[#TRIGGERWORD#]', '[MASK]')
                 .replace('@USERNAME', '')
                 .replace('[NEWLINE]', '\n')
                 .replace('http://url.removed', '')
             )
-            examples.append(
-                InputExample(guid=guid, text_a=text_a, text_b=None, label=labels)
-            )
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=labels))
         return examples
 
 
@@ -284,7 +280,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         else:
             # Account for [CLS] and [SEP] with "- 2"
             if len(tokens_a) > max_seq_length - 2:
-                tokens_a = tokens_a[0:(max_seq_length - 2)]
+                tokens_a = tokens_a[0 : (max_seq_length - 2)]
 
         # The convention in BERT is:
         # (a) For sequence pairs:
@@ -341,19 +337,17 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         if ex_index < 5:
             logger.info("*** Example ***")
             logger.info("guid: %s" % (example.guid))
-            logger.info("tokens: %s" % " ".join(
-                    [str(x) for x in tokens]))
-            logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-            logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
-            logger.info(
-                    "segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
+            logger.info("tokens: %s" % " ".join(str(x) for x in tokens))
+            logger.info("input_ids: %s" % " ".join(str(x) for x in input_ids))
+            logger.info("input_mask: %s" % " ".join(str(x) for x in input_mask))
+            logger.info("segment_ids: %s" % " ".join(str(x) for x in segment_ids))
             logger.info("label: %s (id = %d)" % (example.label, label_id))
 
         features.append(
-                InputFeatures(input_ids=input_ids,
-                              input_mask=input_mask,
-                              segment_ids=segment_ids,
-                              label_id=label_id))
+            InputFeatures(
+                input_ids=input_ids, input_mask=input_mask, segment_ids=segment_ids, label_id=label_id
+            )
+        )
     return features
 
 
@@ -390,6 +384,7 @@ def cm_precision_recall_f1(confusion_matrix: np.ndarray):
     f1 = 2 * precision * recall / (precision + recall)
     return precision, recall, f1
 
+
 def copy_optimizer_params_to_model(named_params_model, named_params_optimizer):
     """ Utility function for optimize_on_cpu and 16-bits training.
         Copy the parameters optimized on CPU/RAM back to the model on GPU
@@ -419,6 +414,7 @@ def set_optimizer_params_grad(named_params_optimizer, named_params_model, test_n
         else:
             param_opti.grad = None
     return is_nan
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -534,12 +530,15 @@ def main():
         torch.distributed.init_process_group(backend='nccl')
         if args.fp16:
             logger.info("16-bits training currently not supported in distributed training")
-            args.fp16 = False # (see https://github.com/pytorch/pytorch/pull/13496)
+            args.fp16 = False  # (see https://github.com/pytorch/pytorch/pull/13496)
     logger.info("device %s n_gpu %d distributed training %r", device, n_gpu, bool(args.local_rank != -1))
 
     if args.gradient_accumulation_steps < 1:
-        raise ValueError("Invalid gradient_accumulation_steps parameter: {}, should be >= 1".format(
-                            args.gradient_accumulation_steps))
+        raise ValueError(
+            "Invalid gradient_accumulation_steps parameter: {}, should be >= 1".format(
+                args.gradient_accumulation_steps
+            )
+        )
 
     args.train_batch_size = int(args.train_batch_size / args.gradient_accumulation_steps)
 
@@ -557,7 +556,6 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     task_name = args.task_name.lower()
-
     if task_name not in processors:
         raise ValueError("Task not found: %s" % (task_name))
 
@@ -571,11 +569,18 @@ def main():
     if args.do_train:
         train_examples = processor.get_train_examples(args.data_dir)
         num_train_steps = int(
-            len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps * args.num_train_epochs)
+            len(train_examples)
+            / args.train_batch_size
+            / args.gradient_accumulation_steps
+            * args.num_train_epochs
+        )
 
     # Prepare model
-    model = BertForSequenceClassification.from_pretrained(args.bert_model, num_labels=len(label_list),
-                cache_dir=PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(args.local_rank))
+    model = BertForSequenceClassification.from_pretrained(
+        args.bert_model,
+        num_labels=len(label_list),
+        cache_dir=PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(args.local_rank),
+    )
     # TODO
     # model = BertForSequenceClassification(bert_config, len(label_list))
     # if args.init_checkpoint is not None:
@@ -588,34 +593,43 @@ def main():
         model.half()
     model.to(device)
     if args.local_rank != -1:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank],
-                                                          output_device=args.local_rank)
+        model = torch.nn.parallel.DistributedDataParallel(
+            model, device_ids=[args.local_rank], output_device=args.local_rank
+        )
     elif n_gpu > 1:
         model = torch.nn.DataParallel(model)
 
     # Prepare optimizer
-    if args.fp16:
-        param_optimizer = [(n, param.clone().detach().to('cpu').float().requires_grad_()) \
-                            for n, param in model.named_parameters()]
-    elif args.optimize_on_cpu:
-        param_optimizer = [(n, param.clone().detach().to('cpu').requires_grad_()) \
-                            for n, param in model.named_parameters()]
+    if args.fp16 or args.optimize_on_cpu:
+        param_optimizer = [
+            (n, param.clone().detach().to('cpu').float().requires_grad_())
+            for n, param in model.named_parameters()
+        ]
     else:
         param_optimizer = list(model.named_parameters())
     no_decay = ['bias', 'gamma', 'beta']
     optimizer_grouped_parameters = [
-        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay_rate': 0.01},
-        {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay_rate': 0.0}
-        ]
-    optimizer = BertAdam(optimizer_grouped_parameters,
-                         lr=args.learning_rate,
-                         warmup=args.warmup_proportion,
-                         t_total=num_train_steps)
+        {
+            'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)],
+            'weight_decay_rate': 0.01,
+        },
+        {
+            'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)],
+            'weight_decay_rate': 0.0,
+        },
+    ]
+    optimizer = BertAdam(
+        optimizer_grouped_parameters,
+        lr=args.learning_rate,
+        warmup=args.warmup_proportion,
+        t_total=num_train_steps,
+    )
 
     global_step = 0
     if args.do_train:
         train_features = convert_examples_to_features(
-            train_examples, label_list, args.max_seq_length, tokenizer)
+            train_examples, label_list, args.max_seq_length, tokenizer
+        )
         logger.info("***** Running training *****")
         logger.info("  Num examples = %d", len(train_examples))
         logger.info("  Batch size = %d", args.train_batch_size)
@@ -646,7 +660,7 @@ def main():
                 input_ids, input_mask, segment_ids, label_ids = batch
                 loss, _ = model(input_ids, segment_ids, input_mask, label_ids)
                 if n_gpu > 1:
-                    loss = loss.mean() # mean() to average on multi-gpu.
+                    loss = loss.mean()  # mean() to average on multi-gpu.
                 if args.fp16 and args.loss_scale != 1.0:
                     # rescale loss for fp16 training
                     # see https://docs.nvidia.com/deeplearning/sdk/mixed-precision-training/index.html
@@ -664,7 +678,9 @@ def main():
                             for param in model.parameters():
                                 if param.grad is not None:
                                     param.grad.data = param.grad.data / args.loss_scale
-                        is_nan = set_optimizer_params_grad(param_optimizer, model.named_parameters(), test_nan=True)
+                        is_nan = set_optimizer_params_grad(
+                            param_optimizer, model.named_parameters(), test_nan=True
+                        )
                         if is_nan:
                             logger.info("FP16 TRAINING: Nan in gradients, reducing loss scaling")
                             args.loss_scale = args.loss_scale / 2
@@ -681,7 +697,8 @@ def main():
     if args.do_eval:
         eval_examples = processor.get_dev_examples(args.data_dir)
         eval_features = convert_examples_to_features(
-            eval_examples, label_list, args.max_seq_length, tokenizer)
+            eval_examples, label_list, args.max_seq_length, tokenizer
+        )
         logger.info("***** Running evaluation *****")
         logger.info("  Num examples = %d", len(eval_examples))
         logger.info("  Batch size = %d", args.eval_batch_size)
@@ -717,13 +734,15 @@ def main():
 
         eval_loss /= nb_eval_steps
 
-        result = {'eval_loss': eval_loss,
-                  'eval_accuracy': metrics.accuracy_score(all_true_y, all_preds),
-                  'eval_precision': metrics.precision_score(all_true_y, all_preds),
-                  'eval_recall': metrics.recall_score(all_true_y, all_preds),
-                  'eval_f1': metrics.f1_score(all_true_y, all_preds),
-                  'eval_confusion_matrix': metrics.confusion_matrix(all_true_y, all_preds),
-                  'global_step': global_step}
+        result = {
+            'eval_loss': eval_loss,
+            'eval_accuracy': metrics.accuracy_score(all_true_y, all_preds),
+            'eval_precision': metrics.precision_score(all_true_y, all_preds, average=None),
+            'eval_recall': metrics.recall_score(all_true_y, all_preds, average=None),
+            'eval_f1': metrics.f1_score(all_true_y, all_preds, average=None),
+            'eval_confusion_matrix': metrics.confusion_matrix(all_true_y, all_preds),
+            'global_step': global_step,
+        }
 
         output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
@@ -736,7 +755,8 @@ def main():
     if args.do_predict:
         test_examples = processor.get_test_examples(args.data_dir)
         test_features = convert_examples_to_features(
-            test_examples, label_list, args.max_seq_length, tokenizer)
+            test_examples, label_list, args.max_seq_length, tokenizer
+        )
         logger.info("***** Running prediction *****")
         logger.info("  Num examples = %d", len(test_examples))
         logger.info("  Batch size = %d", args.eval_batch_size)
@@ -775,13 +795,15 @@ def main():
 
         test_loss /= nb_test_steps
 
-        result = {'test_loss': test_loss,
-                  'test_accuracy': metrics.accuracy_score(all_true_y, all_preds),
-                  'test_precision': metrics.precision_score(all_true_y, all_preds, average=None),
-                  'test_recall': metrics.recall_score(all_true_y, all_preds, average=None),
-                  'test_f1': metrics.f1_score(all_true_y, all_preds, average=None),
-                  'test_confusion_matrix': metrics.confusion_matrix(all_true_y, all_preds),
-                  'global_step': global_step}
+        result = {
+            'test_loss': test_loss,
+            'test_accuracy': metrics.accuracy_score(all_true_y, all_preds),
+            'test_precision': metrics.precision_score(all_true_y, all_preds, average=None),
+            'test_recall': metrics.recall_score(all_true_y, all_preds, average=None),
+            'test_f1': metrics.f1_score(all_true_y, all_preds, average=None),
+            'test_confusion_matrix': metrics.confusion_matrix(all_true_y, all_preds),
+            'global_step': global_step,
+        }
 
         output_test_file = os.path.join(args.output_dir, "test_results.txt")
         with open(output_test_file, "w") as writer:

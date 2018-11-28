@@ -31,14 +31,15 @@ from torch.utils.data.distributed import DistributedSampler
 from pytorch_pretrained_bert.tokenization import BertTokenizer
 from pytorch_pretrained_bert.modeling import BertModel
 
-logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s', 
-                    datefmt = '%m/%d/%Y %H:%M:%S',
-                    level = logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
+    datefmt='%m/%d/%Y %H:%M:%S',
+    level=logging.INFO,
+)
 logger = logging.getLogger(__name__)
 
 
 class InputExample(object):
-
     def __init__(self, unique_id, text_a, text_b):
         self.unique_id = unique_id
         self.text_a = text_a
@@ -75,7 +76,7 @@ def convert_examples_to_features(examples, seq_length, tokenizer):
         else:
             # Account for [CLS] and [SEP] with "- 2"
             if len(tokens_a) > seq_length - 2:
-                tokens_a = tokens_a[0:(seq_length - 2)]
+                tokens_a = tokens_a[0 : (seq_length - 2)]
 
         # The convention in BERT is:
         # (a) For sequence pairs:
@@ -134,8 +135,7 @@ def convert_examples_to_features(examples, seq_length, tokenizer):
             logger.info("tokens: %s" % " ".join([str(x) for x in tokens]))
             logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
             logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
-            logger.info(
-                "input_type_ids: %s" % " ".join([str(x) for x in input_type_ids]))
+            logger.info("input_type_ids: %s" % " ".join([str(x) for x in input_type_ids]))
 
         features.append(
             InputFeatures(
@@ -143,7 +143,9 @@ def convert_examples_to_features(examples, seq_length, tokenizer):
                 tokens=tokens,
                 input_ids=input_ids,
                 input_mask=input_mask,
-                input_type_ids=input_type_ids))
+                input_type_ids=input_type_ids,
+            )
+        )
     return features
 
 
@@ -182,8 +184,7 @@ def read_examples(input_file):
             else:
                 text_a = m.group(1)
                 text_b = m.group(2)
-            examples.append(
-                InputExample(unique_id=unique_id, text_a=text_a, text_b=text_b))
+            examples.append(InputExample(unique_id=unique_id, text_a=text_a, text_b=text_b))
             unique_id += 1
     return examples
 
@@ -194,24 +195,31 @@ def main():
     ## Required parameters
     parser.add_argument("--input_file", default=None, type=str, required=True)
     parser.add_argument("--output_file", default=None, type=str, required=True)
-    parser.add_argument("--bert_model", default=None, type=str, required=True,
-                        help="Bert pre-trained model selected in the list: bert-base-uncased, "
-                             "bert-large-uncased, bert-base-cased, bert-base-multilingual, bert-base-chinese.")
+    parser.add_argument(
+        "--bert_model",
+        default=None,
+        type=str,
+        required=True,
+        help="Bert pre-trained model selected in the list: bert-base-uncased, "
+        "bert-large-uncased, bert-base-cased, bert-base-multilingual, bert-base-chinese.",
+    )
 
     ## Other parameters
     parser.add_argument("--layers", default="-1,-2,-3,-4", type=str)
-    parser.add_argument("--max_seq_length", default=128, type=int,
-                        help="The maximum total input sequence length after WordPiece tokenization. Sequences longer "
-                            "than this will be truncated, and sequences shorter than this will be padded.")
+    parser.add_argument(
+        "--max_seq_length",
+        default=128,
+        type=int,
+        help="The maximum total input sequence length after WordPiece tokenization. Sequences longer "
+        "than this will be truncated, and sequences shorter than this will be padded.",
+    )
     parser.add_argument("--batch_size", default=32, type=int, help="Batch size for predictions.")
-    parser.add_argument("--local_rank",
-                        type=int,
-                        default=-1,
-                        help = "local_rank for distributed training on gpus")
-    parser.add_argument("--no_cuda",
-                        default=False,
-                        action='store_true',
-                        help="Whether not to use CUDA when available")
+    parser.add_argument(
+        "--local_rank", type=int, default=-1, help="local_rank for distributed training on gpus"
+    )
+    parser.add_argument(
+        "--no_cuda", default=False, action='store_true', help="Whether not to use CUDA when available"
+    )
 
     args = parser.parse_args()
 
@@ -223,7 +231,9 @@ def main():
         n_gpu = 1
         # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
         torch.distributed.init_process_group(backend='nccl')
-    logger.info("device: {} n_gpu: {} distributed training: {}".format(device, n_gpu, bool(args.local_rank != -1)))
+    logger.info(
+        "device: {} n_gpu: {} distributed training: {}".format(device, n_gpu, bool(args.local_rank != -1))
+    )
 
     layer_indexes = [int(x) for x in args.layers.split(",")]
 
@@ -232,7 +242,8 @@ def main():
     examples = read_examples(args.input_file)
 
     features = convert_examples_to_features(
-        examples=examples, seq_length=args.max_seq_length, tokenizer=tokenizer)
+        examples=examples, seq_length=args.max_seq_length, tokenizer=tokenizer
+    )
 
     unique_id_to_feature = {}
     for feature in features:
@@ -242,8 +253,9 @@ def main():
     model.to(device)
 
     if args.local_rank != -1:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank],
-                                                          output_device=args.local_rank)
+        model = torch.nn.parallel.DistributedDataParallel(
+            model, device_ids=[args.local_rank], output_device=args.local_rank
+        )
     elif n_gpu > 1:
         model = torch.nn.DataParallel(model)
 
@@ -281,9 +293,7 @@ def main():
                         layer_output = layer_output[b]
                         layers = collections.OrderedDict()
                         layers["index"] = layer_index
-                        layers["values"] = [
-                            round(x.item(), 6) for x in layer_output[i]
-                        ]
+                        layers["values"] = [round(x.item(), 6) for x in layer_output[i]]
                         all_layers.append(layers)
                     out_features = collections.OrderedDict()
                     out_features["token"] = token
