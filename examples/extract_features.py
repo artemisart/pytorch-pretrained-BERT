@@ -32,9 +32,7 @@ from pytorch_pretrained_bert.tokenization import BertTokenizer
 from pytorch_pretrained_bert.modeling import BertModel
 
 logging.basicConfig(
-    format='%(asctime)s %(levelname)s %(name)s %(message)s',
-    datefmt='%m/%d/%Y %H:%M:%S',
-    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(name)s %(message)s', datefmt='%m/%d/%Y %H:%M:%S', level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
@@ -133,8 +131,8 @@ def convert_examples_to_features(examples, seq_length, tokenizer):
             logger.info("*** Example ***")
             logger.info("unique_id: %s" % (example.unique_id))
             logger.info("tokens: %s" % " ".join(str(x) for x in tokens))
-            logger.info("input_ids: %s" % " ".join(str(x) for x in input_ids))
-            logger.info("input_mask: %s" % " ".join(str(x) for x in input_mask))
+            logger.info("input_ids: %s" % " ".join(str(x) for x in input_ids if x))
+            logger.info("input_mask: %s" % "".join(str(x) for x in input_mask))
             logger.info("input_type_ids: %s" % " ".join(str(x) for x in input_type_ids))
 
         features.append(
@@ -216,9 +214,7 @@ def main():
     parser.add_argument(
         "--local_rank", type=int, default=-1, help="local_rank for distributed training on gpus"
     )
-    parser.add_argument(
-        "--no_cuda", action='store_true', help="Whether not to use CUDA when available"
-    )
+    parser.add_argument("--no_cuda", action='store_true', help="Whether not to use CUDA when available")
 
     args = parser.parse_args()
 
