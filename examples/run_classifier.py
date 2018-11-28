@@ -699,7 +699,8 @@ def main():
         model.eval()
         eval_loss = 0
         nb_eval_steps = 0
-        confusion_matrix = np.zeros((2, 2))  # tn, fp, fn, tp
+        all_true_y = []
+        all_preds = []
         for input_ids, input_mask, segment_ids, label_ids in tqdm(eval_dataloader, "Eval"):
             input_ids = input_ids.to(device)
             input_mask = input_mask.to(device)
@@ -710,18 +711,18 @@ def main():
                 tmp_eval_loss, logits = model(input_ids, segment_ids, input_mask, label_ids)
                 eval_loss += tmp_eval_loss.mean().item()
                 preds = logits.argmax(1)
-                confusion_matrix += metrics.confusion_matrix(label_ids, preds)
+                all_true_y += label_ids.tolist()
+                all_preds += preds.tolist()
             nb_eval_steps += 1
 
         eval_loss /= nb_eval_steps
-        eval_accuracy = cm_accuracy(confusion_matrix)
-        eval_precision, eval_recall, eval_f1 = cm_precision_recall_f1(confusion_matrix)
 
         result = {'eval_loss': eval_loss,
-                  'eval_accuracy': eval_accuracy,
-                  'eval_precision': eval_precision,
-                  'eval_recall': eval_recall,
-                  'eval_f1': eval_f1,
+                  'eval_accuracy': metrics.accuracy_score(all_true_y, all_preds),
+                  'eval_precision': metrics.precision_score(all_true_y, all_preds),
+                  'eval_recall': metrics.recall_score(all_true_y, all_preds),
+                  'eval_f1': metrics.f1_score(all_true_y, all_preds),
+                  'eval_confusion_matrix': metrics.confusion_matrix(all_true_y, all_preds),
                   'global_step': global_step}
 
         output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
@@ -753,7 +754,8 @@ def main():
         model.eval()
         test_loss = 0
         nb_test_steps = 0
-        confusion_matrix = np.zeros((2, 2))  # tn, fp, fn, tp
+        all_true_y = []
+        all_preds = []
         results = []
         for input_ids, input_mask, segment_ids, label_ids in tqdm(test_dataloader, "Test"):
             input_ids = input_ids.to(device)
@@ -765,19 +767,20 @@ def main():
                 tmp_test_loss, logits = model(input_ids, segment_ids, input_mask, label_ids)
                 test_loss += tmp_test_loss.mean().item()
                 preds = logits.argmax(1)
-                confusion_matrix += metrics.confusion_matrix(label_ids, preds)
-                results.extend(logits.cpu().numpy())
+                all_true_y += label_ids.tolist()
+                # results.extend(logits.cpu().numpy())
+                all_preds += preds.tolist()
+                results += logits.tolist()
             nb_test_steps += 1
 
         test_loss /= nb_test_steps
-        test_accuracy = cm_accuracy(confusion_matrix)
-        test_precision, test_recall, test_f1 = cm_precision_recall_f1(confusion_matrix)
 
         result = {'test_loss': test_loss,
-                  'test_accuracy': test_accuracy,
-                  'test_precision': test_precision,
-                  'test_recall': test_recall,
-                  'test_f1': test_f1,
+                  'test_accuracy': metrics.accuracy_score(all_true_y, all_preds),
+                  'test_precision': metrics.precision_score(all_true_y, all_preds, average=None),
+                  'test_recall': metrics.recall_score(all_true_y, all_preds, average=None),
+                  'test_f1': metrics.f1_score(all_true_y, all_preds, average=None),
+                  'test_confusion_matrix': metrics.confusion_matrix(all_true_y, all_preds),
                   'global_step': global_step}
 
         output_test_file = os.path.join(args.output_dir, "test_results.txt")
