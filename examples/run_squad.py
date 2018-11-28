@@ -288,16 +288,17 @@ def convert_examples_to_features(
                 logger.info("example_index: %s" % (example_index))
                 logger.info("doc_span_index: %s" % (doc_span_index))
                 logger.info("tokens: %s" % " ".join(tokens))
-                logger.info("token_to_orig_map: %s" % " ".join([
-                    "%d:%d" % (x, y) for (x, y) in token_to_orig_map.items()]))
-                logger.info("token_is_max_context: %s" % " ".join([
-                    "%d:%s" % (x, y) for (x, y) in token_is_max_context.items()
-                ]))
-                logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
                 logger.info(
-                    "input_mask: %s" % " ".join([str(x) for x in input_mask]))
+                    "token_to_orig_map: %s"
+                    % " ".join("%d:%d" % (x, y) for (x, y) in token_to_orig_map.items())
+                )
                 logger.info(
-                    "segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
+                    "token_is_max_context: %s"
+                    % " ".join("%d:%s" % (x, y) for (x, y) in token_is_max_context.items())
+                )
+                logger.info("input_ids: %s" % " ".join(str(x) for x in input_ids))
+                logger.info("input_mask: %s" % " ".join(str(x) for x in input_mask))
+                logger.info("segment_ids: %s" % " ".join(str(x) for x in segment_ids))
                 if is_training:
                     answer_text = " ".join(tokens[start_position : (end_position + 1)])
                     logger.info("start_position: %d" % (start_position))
