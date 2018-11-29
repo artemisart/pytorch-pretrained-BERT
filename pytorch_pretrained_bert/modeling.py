@@ -527,9 +527,6 @@ class PreTrainedBertModel(nn.Module):
         state_dict = state_dict.copy()
         if metadata is not None:
             state_dict._metadata = metadata
-        for key in list(state_dict):
-            if key.startswith('module.'):
-                state_dict[key[7:]] = state_dict.pop(key)
 
         def load(module, prefix=''):
             local_metadata = {} if metadata is None else metadata.get(prefix[:-1], {})
